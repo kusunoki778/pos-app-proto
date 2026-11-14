@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1011542709250",
+    "project_id": "pelatihanpos",
+    "storage_bucket": "pelatihanpos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011542709250:android:22d5422364c9f90c8b031b",
+        "android_client_info": {
+          "package_name": "com.pos.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEzzHrSYdBK7QBvA74Ai0OU07-8Uwhp4k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

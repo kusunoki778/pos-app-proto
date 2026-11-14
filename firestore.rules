@@ -1,0 +1,71 @@
+rules_version = '2';
+
+// Aturan dasar POS Kasir Toko.
+// Prinsip: default tolak; Admin SDK di server melewati rules ini.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.role == 'admin';
+    }
+
+    function isStaff() {
+      return isSignedIn() &&
+        ['admin', 'cashier'].hasAny(
+          [get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role]
+        );
+    }
+
+    // Profil user: dibaca sendiri atau admin. Tulis hanya via Admin SDK (seed).
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+
+    // Kategori: semua staff membaca, admin menulis.
+    match /categories/{categoryId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Produk: semua staff membaca.
+    // Admin CRUD penuh. Kasir hanya boleh mengurangi stok
+    // (proses checkout Tahap 6), tidak boleh menaikkan atau mengubah field lain.
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isStaff() &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['stock', 'updatedAt']) &&
+          request.resource.data.stock is int &&
+          request.resource.data.stock >= 0 &&
+          request.resource.data.stock < resource.data.stock);
+    }
+
+    // Transaksi: kasir membaca miliknya, admin membaca semua.
+    // Pembuatan dibuka untuk staff (checkout Tahap 6);
+    // update status pembayaran hanya via backend (Tahap 7-8).
+    match /transactions/{transactionId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.cashierId == request.auth.uid);
+      allow create: if isStaff();
+      allow update, delete: if false;
+    }
+
+    // Token notifikasi (Fase FCM). Diperketat saat implementasi.
+    match /deviceTokens/{token} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Semua dokumen lain: tolak.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
