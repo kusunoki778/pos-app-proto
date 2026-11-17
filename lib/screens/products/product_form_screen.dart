@@ -6,7 +6,7 @@ import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../widgets/common.dart';
 
-/// Form tambah atau ubah produk. [product] null berarti mode tambah.
+/// Form tambah atau ubah produk dengan Live Preview interaktif.
 class ProductFormScreen extends StatefulWidget {
   const ProductFormScreen({
     super.key,
@@ -64,7 +64,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_categoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih kategori terlebih dahulu')),
+        const SnackBar(
+          content: Text('Pilih kategori produk terlebih dahulu'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
       );
       return;
     }
@@ -109,23 +112,109 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    final parsedPrice = int.tryParse(_priceController.text.trim()) ?? 0;
+    final parsedStock = int.tryParse(_stockController.text.trim()) ?? 0;
+
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Ubah Produk' : 'Tambah Produk')),
+      appBar: AppBar(
+        title: Text(_isEdit ? 'Ubah Produk' : 'Tambah Produk Baru'),
+      ),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             children: [
+              // Live Preview Card
+              Card(
+                elevation: 0,
+                color: const Color(0xFFF8FAFC),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: scheme.outline),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.restaurant_rounded, color: scheme.primary, size: 28),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PRATINJAU KATALOG KASIR',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: scheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _nameController.text.trim().isEmpty
+                                  ? 'Nama Produk'
+                                  : _nameController.text.trim(),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              formatRupiah(parsedPrice),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _isActive ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _isActive ? 'Stok: $parsedStock' : 'Nonaktif',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Dropdown Kategori
               StreamBuilder(
                 stream: widget.productService.streamActiveCategories(),
                 builder: (context, snapshot) {
                   final categories = snapshot.data ?? const [];
                   return DropdownButtonFormField<String>(
-                    initialValue: _categoryId,
+                    value: _categoryId,
                     decoration: const InputDecoration(
-                      labelText: 'Kategori',
-                      prefixIcon: Icon(Icons.category_outlined),
+                      labelText: 'Kategori Produk',
+                      prefixIcon: Icon(Icons.category_rounded, size: 20),
                     ),
                     items: [
                       for (final category in categories)
@@ -135,111 +224,134 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         ),
                     ],
                     onChanged: (value) => setState(() => _categoryId = value),
-                    validator: (value) =>
-                        value == null ? 'Kategori wajib dipilih' : null,
+                    validator: (value) => value == null ? 'Pilih kategori produk' : null,
                   );
                 },
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
+
+              // Nama Produk
               TextFormField(
                 controller: _nameController,
                 textInputAction: TextInputAction.next,
+                onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  labelText: 'Nama produk',
-                  prefixIcon: Icon(Icons.label_outline),
+                  labelText: 'Nama Produk',
+                  prefixIcon: Icon(Icons.drive_file_rename_outline_rounded, size: 20),
                 ),
                 validator: (value) =>
-                    (value ?? '').trim().isEmpty ? 'Nama wajib diisi' : null,
+                    (value ?? '').trim().isEmpty ? 'Nama produk wajib diisi' : null,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
+
+              // Harga & Stok side-by-side
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _priceController,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Harga (Rp)',
+                        prefixIcon: Icon(Icons.payments_rounded, size: 20),
+                      ),
+                      validator: (value) {
+                        final v = int.tryParse((value ?? '').trim());
+                        if (v == null) return 'Harus angka';
+                        if (v < 0) return 'Tidak boleh negatif';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stockController,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Stok',
+                        prefixIcon: Icon(Icons.inventory_2_rounded, size: 20),
+                      ),
+                      validator: (value) {
+                        final v = int.tryParse((value ?? '').trim());
+                        if (v == null) return 'Harus angka';
+                        if (v < 0) return 'Tidak boleh negatif';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Deskripsi
               TextFormField(
                 controller: _descriptionController,
                 textInputAction: TextInputAction.next,
                 maxLines: 2,
                 decoration: const InputDecoration(
-                  labelText: 'Keterangan (opsional)',
+                  labelText: 'Keterangan Produk (Opsional)',
+                  prefixIcon: Icon(Icons.description_outlined, size: 20),
                 ),
               ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _priceController,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Harga (Rp)',
-                  prefixIcon: Icon(Icons.payments_outlined),
+              const SizedBox(height: 16),
+
+              // Switch Status Aktif
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: scheme.outline),
                 ),
-                validator: (value) {
-                  final v = int.tryParse((value ?? '').trim());
-                  if (v == null) return 'Harga harus angka';
-                  if (v < 0) return 'Harga tidak boleh negatif';
-                  return null;
-                },
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _stockController,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Stok',
-                  prefixIcon: Icon(Icons.format_list_numbered),
-                ),
-                validator: (value) {
-                  final v = int.tryParse((value ?? '').trim());
-                  if (v == null) return 'Stok harus angka';
-                  if (v < 0) return 'Stok tidak boleh negatif';
-                  return null;
-                },
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _imageUrlController,
-                keyboardType: TextInputType.url,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  labelText: 'URL gambar (opsional)',
-                  prefixIcon: Icon(Icons.image_outlined),
+                child: SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  title: const Text('Status Produk Aktif', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    _isActive
+                        ? 'Produk akan muncul di katalog kasir'
+                        : 'Produk disembunyikan dari katalog kasir',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  value: _isActive,
+                  activeColor: scheme.primary,
+                  onChanged: (value) => setState(() => _isActive = value),
                 ),
               ),
-              const SizedBox(height: 14),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Produk aktif'),
-                subtitle: Text(
-                  _isActive
-                      ? 'Tampil di katalog kasir'
-                      : 'Disembunyikan dari katalog kasir',
-                ),
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              if (!_isEdit && _priceController.text.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
+
+              if (_savingError != null) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                  ),
                   child: Text(
-                    'Pratinjau harga: ${formatRupiah(
-                      int.tryParse(_priceController.text.trim()) ?? 0,
-                    )}',
-                    style: theme.textTheme.bodySmall,
+                    _savingError!,
+                    style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13),
                   ),
                 ),
-              if (_savingError != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _savingError!,
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
+
               if (_saving)
-                const LoadingView(label: 'Menyimpan...')
+                const LoadingView(label: 'Menyimpan data produk ke Firebase...')
               else
-                FilledButton(
+                FilledButton.icon(
                   onPressed: _save,
-                  child: Text(_isEdit ? 'Simpan Perubahan' : 'Simpan Produk'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 52),
+                  ),
+                  icon: const Icon(Icons.cloud_upload_rounded),
+                  label: Text(_isEdit ? 'Simpan Perubahan' : 'Tambah Produk Sekarang'),
                 ),
             ],
           ),

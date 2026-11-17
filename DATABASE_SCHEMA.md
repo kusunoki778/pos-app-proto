@@ -1,4 +1,4 @@
-# Database Schema
+  # Database Schema
 
 Dokumen ini mendefinisikan rancangan struktur data untuk aplikasi POS Flutter. Database utama yang digunakan dalam rancangan ini adalah **Cloud Firestore**.
 

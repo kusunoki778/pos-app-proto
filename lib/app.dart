@@ -6,6 +6,7 @@ import 'screens/history/transaction_detail_screen.dart';
 import 'screens/shell/main_shell.dart';
 import 'services/notification_service.dart';
 import 'state/auth_controller.dart';
+import 'state/cart_controller.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 
@@ -17,8 +18,13 @@ class KasirTokoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: authController,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: authController),
+        // Keranjang di level aplikasi: route yang di-push (mis. CheckoutDialog)
+        // dan semua tab tetap bisa membacanya. Sekali dibuat, hidup selama app.
+        ChangeNotifierProvider(create: (_) => CartController()),
+      ],
       child: MaterialApp(
         title: 'Kasir Toko',
         debugShowCheckedModeBanner: false,

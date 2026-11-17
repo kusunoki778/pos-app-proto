@@ -1,11 +1,11 @@
 {
-    "name": "realtime_communication",
-    "short_name": "realtime_communication",
+    "name": "Kasir Toko",
+    "short_name": "Kasir",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FAF6EE",
+    "theme_color": "#1F4D3A",
+    "description": "Aplikasi kasir point of sale untuk toko: katalog, transaksi, dan laporan realtime.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

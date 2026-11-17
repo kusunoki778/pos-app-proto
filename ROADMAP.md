@@ -4,7 +4,7 @@
 |---|---|
 | **Proyek** | `realtime_communication/` (POS Flutter) |
 | **Referensi PRD** | `PRD_POS_Flutter.md` + 6 dokumen teknis |
-| **Update terakhir** | 14 November 2026 |
+| **Update terakhir** | 15 November 2026 |
 
 > Checklist ini adalah sumber kebenaran progres. Update tiap kali 1 tahap selesai.
 
@@ -17,14 +17,14 @@
 | 1 | Setup & Environment | ✅ 100% |
 | 2 | Firebase Init + Models | ✅ 100% |
 | 3 | Auth + Role (Login) | ⏳ 90% (menunggu uji login di HP) |
-| 4 | Dashboard Admin (CRUD Produk) | ⏳ 80% (dashboard ringkasan belum) |
+| 4 | Dashboard Admin (CRUD Produk) | ✅ 100% (CRUD + dashboard ringkasan + filter kategori) |
 | 5 | Katalog + Keranjang Kasir | ✅ 100% |
-| 6 | Checkout + Transaksi Firestore | ✅ 90% (versi tunai; MiomiPay menyusul Tahap 7-8) |
-| 7 | Backend Express (validasi + MiomiPay) | ⏳ 60% (server notifikasi FCM jadi; validasi checkout + MiomiPay belum) |
-| 8 | Webhook + Verifikasi Pembayaran | ❌ Belum |
+| 6 | Checkout + Transaksi Firestore | ✅ 100% (tunai + QRIS via MiomiPay) |
+| 7 | Backend Express (validasi + MiomiPay) | ✅ 95% (semua endpoint jadi; struktur folder src/ opsional) |
+| 8 | Webhook + Verifikasi Pembayaran | ✅ 100% (webhook + polling fallback di app) |
 | 9 | Stok Konsisten + Security Rules | ⏳ 70% (stok atomik jadi; uji rules belum) |
 | 10 | Testing Android & Web | ❌ Belum |
-| 11 | UI Polish + Dokumentasi | ❌ Belum |
+| 11 | UI Polish + Dokumentasi | ⏳ 80% (README + design system ✅; status akhir tunggu Tahap 10) |
 
 > Detail progres tiap tahap ada di bawah. Keputusan final soal PRD ada
 > di bagian "Deviasi dari PRD".
@@ -95,7 +95,7 @@ Sisa pembersihan (tidak menghalangi build):
       - 3 kategori + 8 produk contoh
 - [ ] Uji login asli di HP Android (menunggu sesi testing)
 
-## Tahap 4 — Dashboard Admin (CRUD Produk) ⏳ 80%
+## Tahap 4 — Dashboard Admin (CRUD Produk) ✅ 100%
 
 - [x] Daftar produk realtime (Firestore Stream) + pencarian ✅
 - [x] Form tambah produk (kategori dropdown, nama, harga, stok,
@@ -104,8 +104,9 @@ Sisa pembersihan (tidak menghalangi build):
 - [x] Nonaktifkan/aktifkan produk ✅
 - [x] Hapus produk dengan dialog konfirmasi + peringatan ✅
 - [x] Halaman profil + logout (di menu Pengaturan) ✅
-- [ ] Dashboard ringkasan (jumlah produk, transaksi hari ini) ❌
-- [ ] Filter per kategori di daftar produk ❌
+- [x] Dashboard ringkasan (omzet/transaksi/item hari ini, 5 transaksi
+      terakhir, stok kritis < 5) ✅ 15 Nov 2026
+- [x] Filter per kategori di daftar produk ✅
 
 ## Tahap 9 — Stok Konsisten + Security Rules ⏳ 70%
 
@@ -120,7 +121,9 @@ Sisa pembersihan (tidak menghalangi build):
       (`TransactionService.checkoutCash`: baca semua produk dulu,
       kurangi stok + simpan transaksi dalam satu transaksi)
 - [ ] Aturan dites dengan emulator rules / kasus nyata
-- [ ] Kebijakan stok saat checkout pending (menunggu keputusan MiomiPay)
+- [x] Kebijakan stok saat checkout pending ✅ (diputuskan: stok berkurang
+      HANYA saat webhook PAID; stok kurang saat dibayar → transaksi
+      `failed`, tidak pernah stok minus)
 
 ## Tahap 5 — Katalog + Keranjang Kasir ✅ 100%
 
@@ -133,13 +136,13 @@ Sisa pembersihan (tidak menghalangi build):
 - [x] Layout responsive: layar ≥900px katalog + panel keranjang
       berdampingan; HP pakai tombol keranjang (bottom sheet) ✅
 
-## Tahap 6 — Checkout + Transaksi Firestore ✅ 90%
+## Tahap 6 — Checkout + Transaksi Firestore ✅ 100%
 
 - [x] Halaman checkout (ringkasan item + total) ✅ (`checkout_dialog.dart`)
-- [x] Pilih metode: tunai / QRIS / debit; chip uang cepat;
-      hitung kembalian otomatis ✅
+- [x] Pilih metode: tunai / QRIS (debit ditiadakan karena MiomiPay
+      hanya QRIS); chip uang cepat; hitung kembalian otomatis ✅
 - [x] Simpan transaksi ke Firestore `paid` + kurangi stok atomik ✅
-      (pengganti sementara MiomiPay — lihat Deviasi #3)
+      (tunai: langsung dari app; QRIS: stok berkurang saat webhook PAID)
 - [x] Struk ringkas setelah pembayaran sukses ✅
 - [x] Halaman Payment Status (status `pending / paid / failed /
       expired` di riwayat + detail) ✅
@@ -149,29 +152,38 @@ Sisa pembersihan (tidak menghalangi build):
 - [x] Notifikasi foreground (notifikasi lokal) + tap notifikasi
       membuka detail transaksi (`/transaction/{id}`) ✅
 - [x] Layar Pengaturan: status token FCM + tombol "Tes Notifikasi" ✅
-- [ ] Kirim checkout ke backend `POST /api/checkout` + Firebase ID Token
-      (menunggu Tahap 7)
-- [ ] Backend verifikasi token + role + harga (Tahap 7, setelah MiomiPay)
+- [x] Kirim checkout ke backend `POST /api/checkout` + Firebase ID Token ✅
+      (tunai tetap via Firestore dari app; QRIS via server)
+- [x] Backend verifikasi token + role + harga ✅ (server re-read harga &
+      stok dari Firestore — tidak percaya data dari klien)
 
-## Tahap 7 — Backend Express (validasi + MiomiPay) ⏳ 60%
+## Tahap 7 — Backend Express (validasi + MiomiPay) ✅ 95%
 
 - [x] Server Express `server/server.js` ✅:
       `GET /api/health`, `POST /api/notify` (kirim FCM via
       firebase-admin `getMessaging`), `POST /api/notify-test`
 - [x] Proteksi endpoint via header `X-API-Key` ✅ (`server/.env.example`)
 - [ ] Struktur server: `src/{config,middleware,routes,controllers,services}`
-- [ ] Middleware verifikasi Firebase ID Token (firebase-admin)
-- [ ] `POST /api/checkout` → validasi → request tagihan ke MiomiPay (`POST /payment/create`)
-- [ ] Simpan `payment_attempts` (providerReference, amount, status)
-- [ ] `GET /api/transactions/:id/status` untuk polling app
-- [ ] Secret key MiomiPay HANYA di server (tidak pernah di Flutter)
+      (satu file masih mudah dikelola; opsional)
+- [x] Middleware verifikasi Firebase ID Token (firebase-admin
+      `verifyIdToken` + cek role/isActive di dokumen `users`) ✅
+- [x] `POST /api/checkout` → validasi → request tagihan ke MiomiPay
+      (`POST /payment/create`) ✅ — checkout tunai tetap di Firestore
+      dari app; QRIS lewat server
+- [x] Simpan `payment_attempts` (providerReference, amount, status) ✅
+- [x] `GET /api/transactions/:id/status` untuk polling app ✅
+- [x] Secret key MiomiPay HANYA di server (tidak pernah di Flutter) ✅
+      (env `MIOMIPAY_API_KEY`, app hanya pakai Firebase ID Token)
 
-## Tahap 8 — Webhook + Verifikasi Pembayaran ❌
+## Tahap 8 — Webhook + Verifikasi Pembayaran ✅ 100%
 
-- [ ] Endpoint `POST /api/webhook/miomipay` (verifikasi signature sesuai docs resmi)
-- [ ] Idempotent: event sama tidak diproses 2x
-- [ ] Update `paymentStatus` transaksi: paid / failed / expired
-- [ ] Note: webhook ke localhost tak bisa masuk → fallback polling dari app (jaring pengaman)
+- [x] Endpoint `POST /api/webhook/miomipay` (verifikasi signature
+      HMAC-SHA256 `timingSafeEqual` sesuai docs resmi) ✅
+- [x] Idempotent: event sama tidak diproses 2x (koleksi `webhook_events`) ✅
+- [x] Update `paymentStatus` transaksi: paid / failed / expired ✅
+      (PAID → kurangi stok atomik Admin SDK; stok kurang → `failed`)
+- [x] Note: webhook ke localhost tak bisa masuk → fallback polling dari
+      app (jaring pengaman) ✅ — `QrisPaymentScreen` polling 3 detik
 
 ## Tahap 9 — Stok Konsisten + Security Rules
 
@@ -180,21 +192,26 @@ bersama Tahap 2-4 supaya urutan pengerjaan terbaca). Ringkasannya:
 stok berkurang atomik saat checkout `paid`, dan aturan rules dasar
 sudah terpasang.
 
-## Tahap 10 — Testing Android ❌
+## Tahap 10 — Testing Android & Web (uji lokal) ❌
 
-> Web dicabut (Deviasi #2) — hanya uji Android (perangkat asli / emulator).
+> Deliverable = Android (penugasan Mobile Apps). Web hanya **alat uji
+> lokal** di Chrome (`flutter run -d chrome`) untuk mempercepat QA tanpa
+> HP. Build web sudah sukses (15 Nov 2026).
 
+- [ ] `flutter run` di Chrome — alur lengkap: login → CRUD → cart → checkout → paid
 - [ ] `flutter run` di Android (emulator/device) — alur lengkap: login → CRUD → cart → checkout → paid
 - [ ] Test realtime: admin ubah produk → katalog kasir update tanpa refresh
 - [ ] Test role: kasir tidak bisa akses halaman/route admin
 - [ ] Test pembayaran: pending → paid (sandbox MiomiPay) + stok berkurang benar
 
-## Tahap 11 — UI Polish + Dokumentasi ❌
+## Tahap 11 — UI Polish + Dokumentasi ⏳
 
-- [ ] Konsistensi design system (warna, radius, spacing) di semua halaman
-- [ ] Empty state, loading state, error state semua halaman
-- [ ] Update README (cara setup, jalankan, akun demo admin/kasir)
-- [ ] Update ROADMAP.md status akhir
+- [x] Konsistensi design system (warna, radius, spacing) di semua halaman ✅
+      (theme.dart tunggal, semua layar pakai colorScheme/textTheme)
+- [x] Empty state, loading state, error state semua halaman ✅
+      (widgets/common.dart: EmptyState, LoadingView)
+- [x] Update README (cara setup, jalankan, akun demo admin/kasir) ✅ 15 Nov 2026
+- [ ] Update ROADMAP.md status akhir (setelah Tahap 10)
 
 ---
 
@@ -219,9 +236,10 @@ sudah terpasang.
 | 1 | Firebase project + `flutterfire configure` | ✅ Selesai | Project `pelatihanpos`, Android saja |
 | 2 | Service account JSON | ✅ Selesai | `server/serviceAccountKey.json`, jangan di-commit |
 | 3 | Buat akun demo di Firebase Auth + dokumen `users/{uid}` | ✅ Selesai | `server/seed.js`: admin@pos.test / admin123456, kasir@pos.test / kasir123456 + 3 kategori + 8 produk |
-| 4 | MiomiPay sandbox key | ❌ Menunggu | Dibutuhkan sebelum Tahap 7 |
-| 5 | Dokumentasi API MiomiPay | ❌ Menunggu | Wajib sebelum Tahap 7-8 (endpoint + signature webhook) |
+| 4 | MiomiPay sandbox key | ✅ Selesai | `MP-SB-xMmS…` (15 Nov 2026), dipakai server via env `MIOMIPAY_API_KEY` |
+| 5 | Dokumentasi API MiomiPay | ✅ Selesai | https://pg.miomidev.com/docs; webhook secret `whsec_…` di env `MIOMIPAY_WEBHOOK_SECRET` |
 | 6 | Hapus app Android `com.example.realtime_communication` di Console | ❌ Belum | Project settings → Your apps (opsional, tidak menghalangi) |
+| 7 | VAPID key untuk notifikasi web | ✅ Selesai | Key pair sudah dibuat, public key terpasang di `lib/config.dart` (`webVapidKey`) |
 
 ---
 
@@ -230,8 +248,8 @@ sudah terpasang.
 | # | Topik | Keputusan |
 |---|---|---|
 | 1 | Tema | **Tema hangat menang.** `DESIGN_SYSTEM.md` sudah diisi, PRD §8.1 dicatat digantikan |
-| 2 | Platform | **Android saja.** Web dicabut, dicatat di PRD |
-| 3 | Pembayaran | **MiomiPay sesuai PRD.** Checkout tunai hanya sementara sampai dokumen API MiomiPay diberikan. Tahap 6 sementara menyimpan transaksi `paid` tunai agar Tahap 9-11 bisa jalan, lalu Tahap 7-8 menyusul |
+| 2 | Platform | **Android sebagai deliverable utama** (sesuai penugasan Mobile Apps). Web ditambahkan lagi **15 Nov 2026 sebagai alat uji lokal di Chrome** — bukan target rilis. Config web `1:1011542709250:web:26bae3dd13b144cf8b031b` + service worker `web/firebase-messaging-sw.js` |
+| 3 | Pembayaran | **MiomiPay sesuai PRD — terpasang (15 Nov 2026).** Sandbox `MP-SB-xMmS…` di server (`pg.miomidev.com/api/v1`), tagihan QRIS dibuat backend, webhook HMAC + polling app. Checkout tunai tetap tersedia; stok berkurang hanya saat webhook PAID (stok kurang → transaksi `failed`) |
 | 4 | Routing | **Tanpa GoRouter untuk saat ini.** AuthGate + NavigationBar cukup; GoRouter hanya kalau deep-link notifikasi butuh nama route |
 | 5 | Struktur folder | **Struktur sekarang menang** (`screens/`, `state/`, `services/`). PRD §13.4 dicatat digantikan |
 | 6 | Notifikasi | **FCM jadi fitur inti** (dicatat di PRD). Koleksi `device_tokens` ditambahkan ke schema saat Tahap 6 |

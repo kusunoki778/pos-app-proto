@@ -109,6 +109,96 @@ class TransactionService {
     return TransactionModel.fromFirestore(saved);
   }
 
+  /// Membuat transaksi pending untuk QRIS MiomiPay mandiri (Direct mode).
+  Future<TransactionModel> createPendingQrisTransaction({
+    required AppUser cashier,
+    required List<CartItemModel> cartItems,
+    required String reference,
+    required String paymentUrl,
+    required String externalId,
+  }) async {
+    final subtotal = cartItems.fold<int>(
+      0,
+      (acc, item) => acc + item.unitPrice * item.quantity,
+    );
+
+    final itemsSnapshot = cartItems.map((item) => {
+      'productId': item.productId,
+      'productName': item.productName,
+      'unitPrice': item.unitPrice,
+      'quantity': item.quantity,
+      'lineTotal': item.unitPrice * item.quantity,
+    }).toList();
+
+    final doc = _transactions.doc();
+    await doc.set({
+      'transactionNumber': generateNumber(DateTime.now()),
+      'cashierId': cashier.uid,
+      'cashierName': cashier.name,
+      'items': itemsSnapshot,
+      'subtotal': subtotal,
+      'discount': 0,
+      'total': subtotal,
+      'currency': 'IDR',
+      'paymentMethod': 'qris',
+      'paymentStatus': 'pending',
+      'transactionStatus': 'pending',
+      'providerReference': reference,
+      'paymentUrl': paymentUrl,
+      'externalId': externalId,
+      'paid': subtotal,
+      'change': 0,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'paidAt': null,
+    });
+
+    final saved = await doc.get();
+    return TransactionModel.fromFirestore(saved);
+  }
+
+  /// Melunaskan transaksi QRIS dan memotong stok produk secara atomik.
+  Future<bool> settleQrisTransaction({
+    required String transactionId,
+  }) async {
+    try {
+      final docRef = _transactions.doc(transactionId);
+      final snap = await docRef.get();
+      if (!snap.exists) return false;
+      final data = snap.data() ?? {};
+      if (data['paymentStatus'] == 'paid') return true;
+
+      final rawItems = (data['items'] ?? const []) as List<dynamic>;
+
+      // Potong stok masing-masing produk
+      for (final raw in rawItems) {
+        final itemMap = (raw as Map).cast<String, dynamic>();
+        final productId = itemMap['productId'] as String;
+        final qty = itemMap['quantity'] as int;
+        final prodRef = _products.doc(productId);
+        final prodSnap = await prodRef.get();
+        if (prodSnap.exists) {
+          final currentStock = (prodSnap.data()?['stock'] ?? 0) as int;
+          final newStock = (currentStock - qty).clamp(0, 999999);
+          await prodRef.update({
+            'stock': newStock,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }).catchError((_) {});
+        }
+      }
+
+      await docRef.update({
+        'paymentStatus': 'paid',
+        'transactionStatus': 'paid',
+        'paidAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Detail transaksi untuk layar detail. Rules menolak transaksi
   /// milik pengguna lain; permission-denied diterjemahkan jadi null.
   Future<TransactionModel?> getTransactionById(String id) async {
