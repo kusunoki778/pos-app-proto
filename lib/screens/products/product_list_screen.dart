@@ -7,6 +7,7 @@ import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import 'product_form_screen.dart';
 import '../../widgets/common.dart';
+import '../../widgets/product_image.dart';
 
 /// Daftar produk untuk admin: realtime CRUD Firestore, filter kategori, pencarian.
 class ProductListScreen extends StatefulWidget {
@@ -319,23 +320,13 @@ class _ProductCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Avatar Icon
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: product.isActive
-                      ? scheme.primary.withValues(alpha: 0.1)
-                      : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.restaurant_rounded,
-                  color: product.isActive
-                      ? scheme.primary
-                      : scheme.onSurface.withValues(alpha: 0.4),
-                  size: 24,
-                ),
+              // Foto / Thumbnail Produk
+              ProductImage(
+                imageUrl: product.imageUrl,
+                categoryId: product.categoryId,
+                width: 52,
+                height: 52,
+                borderRadius: 12,
               ),
               const SizedBox(width: 14),
 

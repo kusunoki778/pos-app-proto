@@ -7,6 +7,7 @@ import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../state/cart_controller.dart';
 import '../../widgets/common.dart';
+import '../../widgets/product_image.dart';
 import 'cart_panel.dart';
 import 'checkout_dialog.dart';
 
@@ -361,7 +362,7 @@ class _CatalogBodyState extends State<_CatalogBody> {
                       crossAxisCount: crossAxisCount,
                       mainAxisSpacing: 14,
                       crossAxisSpacing: 14,
-                      childAspectRatio: 0.78,
+                      childAspectRatio: 0.72,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) => _ProductTile(product: products[index]),
@@ -444,21 +445,13 @@ class _ProductTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gambar / Icon Avatar
-            Container(
-              height: 72,
+            // Foto Produk CDN / Database
+            ProductImage(
+              imageUrl: product.imageUrl,
+              categoryId: product.categoryId,
+              height: 86,
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: inCart ? scheme.primary.withValues(alpha: 0.08) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Icon(
-                  _iconForCategory(product.categoryId),
-                  size: 32,
-                  color: inCart ? scheme.primary : scheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
+              borderRadius: 12,
             ),
             const SizedBox(height: 10),
 

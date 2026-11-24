@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../core/cdn_images.dart';
 import '../../core/formatters.dart';
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../widgets/common.dart';
+import '../../widgets/product_image.dart';
 
-/// Form tambah atau ubah produk dengan Live Preview interaktif.
+/// Form tambah atau ubah produk dengan Live Preview interaktif & integrasi CDN Gambar.
 class ProductFormScreen extends StatefulWidget {
   const ProductFormScreen({
     super.key,
@@ -58,6 +60,45 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _stockController.dispose();
     _imageUrlController.dispose();
     super.dispose();
+  }
+
+  void _applyAutoSuggestion() {
+    final suggestion = suggestCdnImage(_nameController.text, _categoryId);
+    if (suggestion != null) {
+      setState(() {
+        _imageUrlController.text = suggestion.url;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gambar "${suggestion.title}" terpilih otomatis dari CDN!'),
+          backgroundColor: const Color(0xFF10B981),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Belum ada saran otomatis yang cocok. Silakan pilih dari katalog CDN.'),
+          backgroundColor: Color(0xFF64748B),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openCdnPicker() async {
+    final selectedUrl = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _CdnImagePickerSheet(initialCategoryId: _categoryId),
+    );
+
+    if (selectedUrl != null && mounted) {
+      setState(() {
+        _imageUrlController.text = selectedUrl;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -116,6 +157,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
     final parsedPrice = int.tryParse(_priceController.text.trim()) ?? 0;
     final parsedStock = int.tryParse(_stockController.text.trim()) ?? 0;
+    final currentImageUrl = _imageUrlController.text.trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -139,14 +181,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: scheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.restaurant_rounded, color: scheme.primary, size: 28),
+                      ProductImage(
+                        imageUrl: currentImageUrl.isEmpty ? null : currentImageUrl,
+                        categoryId: _categoryId,
+                        width: 56,
+                        height: 56,
+                        borderRadius: 12,
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -165,8 +205,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                             const SizedBox(height: 2),
                             Text(
                               _nameController.text.trim().isEmpty
-                                  ? 'Nama Produk'
-                                  : _nameController.text.trim(),
+                                   ? 'Nama Produk'
+                                   : _nameController.text.trim(),
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -241,6 +281,117 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 ),
                 validator: (value) =>
                     (value ?? '').trim().isEmpty ? 'Nama produk wajib diisi' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Foto / Gambar Produk Terintegrasi CDN & Database
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: scheme.outline),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.image_outlined, color: scheme.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Foto / Gambar Produk',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (currentImageUrl.isNotEmpty)
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() => _imageUrlController.clear());
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFFEF4444),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            ),
+                            icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                            label: const Text('Hapus', style: TextStyle(fontSize: 12)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Preview Banner Gambar
+                    if (currentImageUrl.isNotEmpty) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 140,
+                          width: double.infinity,
+                          color: const Color(0xFFF1F5F9),
+                          child: ProductImage(
+                            imageUrl: currentImageUrl,
+                            categoryId: _categoryId,
+                            height: 140,
+                            width: double.infinity,
+                            borderRadius: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Tombol Aksi: Pilih dari CDN & Saran Otomatis
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.tonalIcon(
+                            onPressed: _openCdnPicker,
+                            icon: const Icon(Icons.photo_library_rounded, size: 18),
+                            label: const Text('Pilih dari CDN', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: _applyAutoSuggestion,
+                          icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                          label: const Text('Saran Otomatis', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Input URL Gambar Manual
+                    TextFormField(
+                      controller: _imageUrlController,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'URL Gambar (CDN / Web)',
+                        hintText: 'https://...',
+                        prefixIcon: const Icon(Icons.link_rounded, size: 20),
+                        suffixIcon: currentImageUrl.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: () {
+                                  setState(() => _imageUrlController.clear());
+                                },
+                              )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Bisa pilih foto langsung dari katalog CDN di atas atau tempel tautan gambar bebas (JPG, PNG, WebP, SVG).',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: scheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -357,6 +508,253 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Modal Bottom Sheet untuk memilih gambar CDN sesuai katalog database
+class _CdnImagePickerSheet extends StatefulWidget {
+  const _CdnImagePickerSheet({this.initialCategoryId});
+
+  final String? initialCategoryId;
+
+  @override
+  State<_CdnImagePickerSheet> createState() => _CdnImagePickerSheetState();
+}
+
+class _CdnImagePickerSheetState extends State<_CdnImagePickerSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _search = '';
+  String? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategory = widget.initialCategoryId;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    var filtered = kCatalogCdnImages;
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      filtered = filtered.where((img) => img.categoryId == _selectedCategory).toList();
+    }
+    if (_search.isNotEmpty) {
+      final q = _search.toLowerCase();
+      filtered = filtered.where((img) {
+        return img.title.toLowerCase().contains(q) ||
+            img.keywords.any((kw) => kw.toLowerCase().contains(q));
+      }).toList();
+    }
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Header Sheet
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.photo_library_rounded, color: scheme.primary, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Katalog Gambar CDN',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      'Pilih foto berkualitas tinggi sesuai menu POS',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // Search Field
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _search = val.trim()),
+              decoration: InputDecoration(
+                hintText: 'Cari foto (ayam, mie, kopi, teh, keripik...)...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: _search.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _search = '');
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          ),
+
+          // Category Chips
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildCategoryChip('Semua', null),
+                const SizedBox(width: 6),
+                _buildCategoryChip('Makanan', 'cat_makanan'),
+                const SizedBox(width: 6),
+                _buildCategoryChip('Minuman', 'cat_minuman'),
+                const SizedBox(width: 6),
+                _buildCategoryChip('Snack', 'cat_snack'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Grid Foto
+          Expanded(
+            child: filtered.isEmpty
+                ? const EmptyState(
+                    icon: Icons.image_not_supported_outlined,
+                    title: 'Foto tidak ditemukan',
+                    message: 'Coba gunakan kata kunci pencarian yang lain.',
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.95,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final item = filtered[index];
+                      return InkWell(
+                        onTap: () => Navigator.of(context).pop(item.url),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: scheme.outline),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+                                  child: Image.network(
+                                    item.url,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (_, child, progress) {
+                                      if (progress == null) return child;
+                                      return Container(
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Center(
+                                          child: SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (_, _, _) => Container(
+                                      color: const Color(0xFFF1F5F9),
+                                      child: const Icon(Icons.broken_image_rounded, color: Colors.grey),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.title,
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      item.categoryName,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: scheme.onSurface.withValues(alpha: 0.5),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String label, String? catId) {
+    final scheme = Theme.of(context).colorScheme;
+    final isSelected = _selectedCategory == catId;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => setState(() => _selectedCategory = catId),
+      selectedColor: scheme.primary,
+      backgroundColor: scheme.surface,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : scheme.onSurface,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        fontSize: 12,
+      ),
+      side: BorderSide(color: isSelected ? scheme.primary : scheme.outline),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      showCheckmark: false,
     );
   }
 }

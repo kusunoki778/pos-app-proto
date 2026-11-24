@@ -2,19 +2,14 @@
  * Seed data awal untuk project pelatihanpos.
  *
  * Membuat:
- *  - akun admin dan kasir di Firebase Auth + dokumen users/{uid}
+ *  - akun admin, kasir, dan akun tambahan di Firebase Auth + dokumen users/{uid}
  *  - kategori contoh
- *  - produk contoh
+ *  - produk contoh dengan foto CDN berkualitas tinggi
  *
- * Pakai service account: server/serviceAccountKey.json (jangan di-commit).
+ * Pakai service account: server/serviceAccountKey.json.
  *
  * Pemakaian:
- *   ADMIN_EMAIL=admin@pos.test ADMIN_PASSWORD=rahasia123 \
- *   KASIR_EMAIL=kasir@pos.test KASIR_PASSWORD=rahasia123 \
  *   node server/seed.js
- *
- * Script aman dijalankan ulang: akun yang sudah ada dilewati,
- * kategori/produk dibuat hanya kalau belum ada (berdasar nama).
  */
 const path = require("path");
 const admin = require("firebase-admin");
@@ -23,7 +18,6 @@ const { getAuth } = require("firebase-admin/auth");
 
 const serviceAccountPath = path.join(__dirname, "serviceAccountKey.json");
 const adminSdk = admin.initializeApp({
-  // firebase-admin 14: credential cert ada di root, bukan admin.credential.
   credential: admin.cert(require(serviceAccountPath)),
 });
 
@@ -36,6 +30,10 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123456";
 const KASIR_EMAIL = process.env.KASIR_EMAIL || "kasir@pos.test";
 const KASIR_PASSWORD = process.env.KASIR_PASSWORD || "kasir123456";
 
+// Akun opsional Adul
+const ADUL_EMAIL = process.env.ADUL_EMAIL || "adul@pos.test";
+const ADUL_PASSWORD = process.env.ADUL_PASSWORD || "adul123456";
+
 const CATEGORIES = [
   { id: "cat_makanan", name: "Makanan", description: "Makanan ringan dan berat" },
   { id: "cat_minuman", name: "Minuman", description: "Minuman dingin dan panas" },
@@ -43,14 +41,70 @@ const CATEGORIES = [
 ];
 
 const PRODUCTS = [
-  { name: "Nasi Ayam Geprek", description: "Nasi + ayam geprek sambal bawang", categoryId: "cat_makanan", price: 18000, stock: 25 },
-  { name: "Mie Goreng Spesial", description: "Mie goreng telur + acar", categoryId: "cat_makanan", price: 15000, stock: 20 },
-  { name: "Roti Bakar Cokelat", description: "Roti bakar mentega cokelat", categoryId: "cat_makanan", price: 12000, stock: 15 },
-  { name: "Es Teh Manis", description: "Teh tawar + gula, gelas 300ml", categoryId: "cat_minuman", price: 5000, stock: 60 },
-  { name: "Kopi Susu Gula Aren", description: "Es kopi susu aren 250ml", categoryId: "cat_minuman", price: 13000, stock: 40 },
-  { name: "Air Mineral 600ml", description: "Botol air mineral", categoryId: "cat_minuman", price: 4000, stock: 80 },
-  { name: "Keripik Kentang", description: "Keripik kemasan 80gr", categoryId: "cat_snack", price: 9000, stock: 30 },
-  { name: "Wafer Cokelat", description: "Wafer isi 5", categoryId: "cat_snack", price: 2500, stock: 50 },
+  {
+    name: "Nasi Ayam Geprek",
+    description: "Nasi + ayam geprek sambal bawang",
+    categoryId: "cat_makanan",
+    price: 18000,
+    stock: 25,
+    imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80",
+  },
+  {
+    name: "Mie Goreng Spesial",
+    description: "Mie goreng telur + acar",
+    categoryId: "cat_makanan",
+    price: 15000,
+    stock: 20,
+    imageUrl: "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500&q=80",
+  },
+  {
+    name: "Roti Bakar Cokelat",
+    description: "Roti bakar mentega cokelat",
+    categoryId: "cat_makanan",
+    price: 12000,
+    stock: 15,
+    imageUrl: "https://images.unsplash.com/photo-1584776296944-ab6fb57b0bdd?w=500&q=80",
+  },
+  {
+    name: "Es Teh Manis",
+    description: "Teh tawar + gula, gelas 300ml",
+    categoryId: "cat_minuman",
+    price: 5000,
+    stock: 60,
+    imageUrl: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80",
+  },
+  {
+    name: "Kopi Susu Gula Aren",
+    description: "Es kopi susu aren 250ml",
+    categoryId: "cat_minuman",
+    price: 13000,
+    stock: 40,
+    imageUrl: "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&q=80",
+  },
+  {
+    name: "Air Mineral 600ml",
+    description: "Botol air mineral",
+    categoryId: "cat_minuman",
+    price: 4000,
+    stock: 80,
+    imageUrl: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&q=80",
+  },
+  {
+    name: "Keripik Kentang",
+    description: "Keripik kemasan 80gr",
+    categoryId: "cat_snack",
+    price: 9000,
+    stock: 30,
+    imageUrl: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=500&q=80",
+  },
+  {
+    name: "Wafer Cokelat",
+    description: "Wafer isi 5",
+    categoryId: "cat_snack",
+    price: 2500,
+    stock: 50,
+    imageUrl: "https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=500&q=80",
+  },
 ];
 
 async function ensureAuthUser(email, password, name, role) {
@@ -105,18 +159,31 @@ async function ensureProduct(product) {
     .where("name", "==", product.name)
     .limit(1)
     .get();
+
+  const ts = now();
   if (!query.empty) {
-    console.log(`= Produk sudah ada: ${product.name}`);
+    const doc = query.docs[0];
+    const data = doc.data();
+    // Update imageUrl jika sebelumnya masih kosong
+    if (!data.imageUrl && product.imageUrl) {
+      await doc.ref.update({
+        imageUrl: product.imageUrl,
+        updatedAt: ts,
+      });
+      console.log(`^ Update gambar CDN produk: ${product.name}`);
+    } else {
+      console.log(`= Produk sudah ada: ${product.name}`);
+    }
     return;
   }
-  const ts = now();
+
   await db.collection("products").add({
     name: product.name,
     description: product.description ?? null,
     categoryId: product.categoryId,
     price: product.price,
     stock: product.stock,
-    imageUrl: null,
+    imageUrl: product.imageUrl ?? null,
     isActive: true,
     createdAt: ts,
     updatedAt: ts,
@@ -129,14 +196,15 @@ async function ensureProduct(product) {
     console.log("Seed dimulai...");
     await ensureAuthUser(ADMIN_EMAIL, ADMIN_PASSWORD, "Admin Toko", "admin");
     await ensureAuthUser(KASIR_EMAIL, KASIR_PASSWORD, "Kasir Satu", "cashier");
+    if (ADUL_EMAIL) {
+      await ensureAuthUser(ADUL_EMAIL, ADUL_PASSWORD, "Adul", "admin");
+    }
     for (const category of CATEGORIES) await ensureCategory(category);
     for (const product of PRODUCTS) await ensureProduct(product);
-    console.log("Seed selesai.");
+    console.log("Seed selesai dengan sukses.");
     process.exit(0);
   } catch (err) {
     console.error("Seed gagal:", err);
     process.exit(1);
   }
 })();
-
-

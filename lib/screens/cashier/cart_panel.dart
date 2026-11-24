@@ -6,6 +6,7 @@ import '../../models/cart_item_model.dart';
 import '../../models/product_model.dart';
 import '../../state/cart_controller.dart';
 import '../../widgets/common.dart';
+import '../../widgets/product_image.dart';
 
 /// Panel keranjang: dipakai sebagai panel samping (layar lebar)
 /// atau bottom sheet (HP).
@@ -175,6 +176,15 @@ class _CartItemRow extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (item.imageUrl != null && item.imageUrl!.isNotEmpty) ...[
+            ProductImage(
+              imageUrl: item.imageUrl,
+              width: 44,
+              height: 44,
+              borderRadius: 8,
+            ),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

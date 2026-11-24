@@ -8,12 +8,14 @@ class CartItemModel {
     required this.productName,
     required this.unitPrice,
     required this.quantity,
+    this.imageUrl,
   });
 
   final String productId;
   final String productName;
   final int unitPrice;
   final int quantity;
+  final String? imageUrl;
 
   int get lineTotal => unitPrice * quantity;
 
@@ -23,6 +25,7 @@ class CartItemModel {
       productName: productName,
       unitPrice: unitPrice,
       quantity: quantity ?? this.quantity,
+      imageUrl: imageUrl,
     );
   }
 
@@ -32,6 +35,7 @@ class CartItemModel {
       productName: product.name,
       unitPrice: product.price,
       quantity: quantity,
+      imageUrl: product.imageUrl,
     );
   }
 }
