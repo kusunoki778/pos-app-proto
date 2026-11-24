@@ -7,6 +7,7 @@ import 'screens/shell/main_shell.dart';
 import 'services/notification_service.dart';
 import 'state/auth_controller.dart';
 import 'state/cart_controller.dart';
+import 'state/theme_controller.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 
@@ -24,29 +25,42 @@ class KasirTokoApp extends StatelessWidget {
         // Keranjang di level aplikasi: route yang di-push (mis. CheckoutDialog)
         // dan semua tab tetap bisa membacanya. Sekali dibuat, hidup selama app.
         ChangeNotifierProvider(create: (_) => CartController()),
+        ChangeNotifierProvider(create: (_) => ThemeController()),
       ],
-      child: MaterialApp(
-        title: 'Kasir Toko',
-        debugShowCheckedModeBanner: false,
-        navigatorKey: NotificationService.navigatorKey,
-        theme: buildLightTheme(),
-        darkTheme: buildDarkTheme(),
-        themeMode: ThemeMode.system,
-        home: const AuthGate(),
-        onGenerateRoute: (settings) {
-          // Notifikasi ditap membuka detail transaksi tanpa context.
-          final uri = Uri.tryParse(settings.name ?? '');
-          if (uri != null && uri.pathSegments.length == 2 &&
-              uri.pathSegments[0] == 'transaction') {
-            return MaterialPageRoute(
-              builder: (_) => TransactionDetailScreen(
-                transactionId: uri.pathSegments[1],
-              ),
-            );
-          }
-          return null;
-        },
-      ),
+      child: _KasirTokoMaterialApp(authController: authController),
+    );
+  }
+}
+
+class _KasirTokoMaterialApp extends StatelessWidget {
+  const _KasirTokoMaterialApp({required this.authController});
+
+  final AuthController authController;
+
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = context.watch<ThemeController>().mode;
+    return MaterialApp(
+      title: 'Kasir Toko',
+      debugShowCheckedModeBanner: false,
+      navigatorKey: NotificationService.navigatorKey,
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: themeMode,
+      home: const AuthGate(),
+      onGenerateRoute: (settings) {
+        // Notifikasi ditap membuka detail transaksi tanpa context.
+        final uri = Uri.tryParse(settings.name ?? '');
+        if (uri != null && uri.pathSegments.length == 2 &&
+            uri.pathSegments[0] == 'transaction') {
+          return MaterialPageRoute(
+            builder: (_) => TransactionDetailScreen(
+              transactionId: uri.pathSegments[1],
+            ),
+          );
+        }
+        return null;
+      },
     );
   }
 }

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../config.dart';
 import '../../services/api_service.dart';
 import '../../state/auth_controller.dart';
+import '../../state/theme_controller.dart';
+import '../../widgets/animasi.dart';
 
 /// Halaman profil, status payment gateway MiomiPay, server, dan logout.
 class SettingsScreen extends StatefulWidget {
@@ -90,9 +92,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _sectionLabel(BuildContext context, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10, left: 4),
+      child: Text(
+        text.toUpperCase(),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().user;
+    final themeController = context.watch<ThemeController>();
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
@@ -101,10 +119,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Pengaturan & Profil')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
           // Profil Card
-          Card(
+          StaggerEnter(
+            delay: Duration.zero,
+            child: Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
@@ -169,11 +189,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            ),
           ),
-          const SizedBox(height: 20),
 
+          _sectionLabel(context, 'Tampilan'),
+          // Mode Terang / Gelap / Ikuti Sistem
+          StaggerEnter(
+            delay: const Duration(milliseconds: 80),
+            child: Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(color: scheme.outline),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: scheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.palette_rounded, color: scheme.primary, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Mode Tampilan',
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SegmentedButton<ThemeMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: ThemeMode.light,
+                          icon: Icon(Icons.light_mode_rounded, size: 18),
+                          label: Text('Terang'),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.system,
+                          icon: Icon(Icons.brightness_auto_rounded, size: 18),
+                          label: Text('Sistem'),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.dark,
+                          icon: Icon(Icons.dark_mode_rounded, size: 18),
+                          label: Text('Gelap'),
+                        ),
+                      ],
+                      selected: {themeController.mode},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (selection) =>
+                          themeController.setMode(selection.first),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Pilihan disimpan di perangkat ini dan bertahan setelah aplikasi dibuka lagi.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          _sectionLabel(context, 'Integrasi'),
           // Payment Gateway MiomiPay Card
-          Card(
+          StaggerEnter(
+            delay: const Duration(milliseconds: 160),
+            child: Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
@@ -230,11 +324,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 4),
 
           // Koneksi Server Backend Express Card
-          Card(
+          StaggerEnter(
+            delay: const Duration(milliseconds: 240),
+            child: Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
@@ -330,11 +427,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 4),
 
           // Notifikasi Transaksi (FCM) Card
-          Card(
+          StaggerEnter(
+            delay: const Duration(milliseconds: 320),
+            child: Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
@@ -377,21 +477,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            ),
           ),
           const SizedBox(height: 24),
 
           // Tombol Keluar / Logout
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => context.read<AuthController>().signOut(),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-                backgroundColor: const Color(0xFFEF4444),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          StaggerEnter(
+            delay: const Duration(milliseconds: 400),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => context.read<AuthController>().signOut(),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                  backgroundColor: const Color(0xFFEF4444),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.logout_rounded, size: 20),
+                label: const Text('Keluar dari Akun', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
-              icon: const Icon(Icons.logout_rounded, size: 20),
-              label: const Text('Keluar dari Akun', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
         ],
