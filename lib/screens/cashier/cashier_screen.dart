@@ -6,6 +6,7 @@ import '../../models/category_model.dart';
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../state/cart_controller.dart';
+import '../../widgets/animasi.dart';
 import '../../widgets/common.dart';
 import '../../widgets/product_image.dart';
 import 'cart_panel.dart';
@@ -56,16 +57,22 @@ class CashierScreen extends StatelessWidget {
           return Stack(
             children: [
               catalog,
-              if (cart.itemCount > 0)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 16,
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  offset: cart.itemCount > 0
+                      ? Offset.zero
+                      : const Offset(0, 1.6),
                   child: _FloatingCartBar(
                     cart: cart,
                     onTap: () => _openCartSheet(context, cart),
                   ),
                 ),
+              ),
             ],
           );
         },
@@ -251,9 +258,6 @@ class _CatalogBodyState extends State<_CatalogBody> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
     return Column(
       children: [
         // Search Bar di atas katalog
@@ -365,7 +369,12 @@ class _CatalogBodyState extends State<_CatalogBody> {
                       childAspectRatio: 0.72,
                     ),
                     itemCount: products.length,
-                    itemBuilder: (context, index) => _ProductTile(product: products[index]),
+                    itemBuilder: (context, index) => StaggerEnter(
+                      delay: Duration(
+                        milliseconds: (index > 8 ? 8 : index) * 45,
+                      ),
+                      child: _ProductTile(product: products[index]),
+                    ),
                   );
                 },
               );
@@ -416,11 +425,6 @@ class _ProductTile extends StatelessWidget {
   const _ProductTile({required this.product});
 
   final ProductModel product;
-
-  IconData _iconForCategory(String? categoryId) {
-    // Memberi variasi ikon berdasarkan kategori
-    return Icons.restaurant_rounded;
-  }
 
   @override
   Widget build(BuildContext context) {

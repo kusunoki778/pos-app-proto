@@ -6,6 +6,7 @@ import '../../models/category_model.dart';
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import 'product_form_screen.dart';
+import '../../widgets/animasi.dart';
 import '../../widgets/common.dart';
 import '../../widgets/product_image.dart';
 
@@ -268,11 +269,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final product = filtered[index];
-                      return _ProductCard(
-                        product: product,
-                        onTap: () => _openForm(product),
-                        onToggleActive: () => _toggleActive(product),
-                        onDelete: () => _confirmDelete(product),
+                      return StaggerEnter(
+                        delay: Duration(
+                          milliseconds: (index > 8 ? 8 : index) * 45,
+                        ),
+                        child: _ProductCard(
+                          product: product,
+                          onTap: () => _openForm(product),
+                          onToggleActive: () => _toggleActive(product),
+                          onDelete: () => _confirmDelete(product),
+                        ),
                       );
                     },
                   ),

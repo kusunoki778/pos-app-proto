@@ -7,6 +7,7 @@ import '../../models/transaction_model.dart';
 import '../../services/product_service.dart';
 import '../../services/transaction_service.dart';
 import '../../state/auth_controller.dart';
+import '../../widgets/animasi.dart';
 import '../../widgets/common.dart';
 
 /// Dashboard Admin: ringkasan penjualan, transaksi terkini, dan stok menipis.
@@ -48,9 +49,15 @@ class ReportsScreen extends StatelessWidget {
             children: [
               _TodaySummary(transactions: transactions),
               const SizedBox(height: 16),
-              _TransactionList(transactions: transactions.take(5).toList()),
+              StaggerEnter(
+                delay: const Duration(milliseconds: 260),
+                child: _TransactionList(transactions: transactions.take(5).toList()),
+              ),
               const SizedBox(height: 16),
-              const _LowStockCard(),
+              const StaggerEnter(
+                delay: Duration(milliseconds: 340),
+                child: _LowStockCard(),
+              ),
             ],
           );
         },
@@ -87,32 +94,41 @@ class _TodaySummary extends StatelessWidget {
         return Row(
           children: [
             Expanded(
-              child: _MetricCard(
-                icon: Icons.payments_rounded,
-                iconBg: const Color(0xFFEEF2FF),
-                iconColor: const Color(0xFF4F46E5),
-                label: 'Omzet Hari Ini',
-                value: formatRupiah(revenue),
+              child: StaggerEnter(
+                delay: Duration.zero,
+                child: _MetricCard(
+                  icon: Icons.payments_rounded,
+                  iconBg: const Color(0xFFEEF2FF),
+                  iconColor: const Color(0xFF4F46E5),
+                  label: 'Omzet Hari Ini',
+                  value: formatRupiah(revenue),
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _MetricCard(
-                icon: Icons.receipt_long_rounded,
-                iconBg: const Color(0xFFECFDF5),
-                iconColor: const Color(0xFF10B981),
-                label: 'Transaksi',
-                value: '${today.length}',
+              child: StaggerEnter(
+                delay: const Duration(milliseconds: 80),
+                child: _MetricCard(
+                  icon: Icons.receipt_long_rounded,
+                  iconBg: const Color(0xFFECFDF5),
+                  iconColor: const Color(0xFF10B981),
+                  label: 'Transaksi',
+                  value: '${today.length}',
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _MetricCard(
-                icon: Icons.inventory_rounded,
-                iconBg: const Color(0xFFFEF3C7),
-                iconColor: const Color(0xFFD97706),
-                label: 'Item Terjual',
-                value: '$units',
+              child: StaggerEnter(
+                delay: const Duration(milliseconds: 160),
+                child: _MetricCard(
+                  icon: Icons.inventory_rounded,
+                  iconBg: const Color(0xFFFEF3C7),
+                  iconColor: const Color(0xFFD97706),
+                  label: 'Item Terjual',
+                  value: '$units',
+                ),
               ),
             ),
           ],

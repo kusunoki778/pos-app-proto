@@ -72,7 +72,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         SnackBar(
           content: Text('Gambar "${suggestion.title}" terpilih otomatis dari CDN!'),
           backgroundColor: const Color(0xFF10B981),
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
     } else {
@@ -80,7 +80,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         const SnackBar(
           content: Text('Belum ada saran otomatis yang cocok. Silakan pilih dari katalog CDN.'),
           backgroundColor: Color(0xFF64748B),
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
     }
@@ -251,7 +251,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 builder: (context, snapshot) {
                   final categories = snapshot.data ?? const [];
                   return DropdownButtonFormField<String>(
-                    value: _categoryId,
+                    initialValue: _categoryId,
                     decoration: const InputDecoration(
                       labelText: 'Kategori Produk',
                       prefixIcon: Icon(Icons.category_rounded, size: 20),
@@ -471,7 +471,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     ),
                   ),
                   value: _isActive,
-                  activeColor: scheme.primary,
+                  activeThumbColor: scheme.primary,
                   onChanged: (value) => setState(() => _isActive = value),
                 ),
               ),
